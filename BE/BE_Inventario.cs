@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 
 namespace BE
 {
-    public class BE_Inventario : BE_Entidad
+    public class BE_Inventario : BE_EntidadBase
     {
         public BE_Inventario()
         {
             Productos = new List<BE_Producto>();
         }
-        public int IdInventario { get; set; }
         public string NombreProducto { get; set; }
         public string Descripcion { get; set; }
         public int Stock { get; set; }

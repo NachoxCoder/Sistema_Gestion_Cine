@@ -7,14 +7,15 @@ using System.Threading.Tasks;
 
 namespace BE
 {
-    public class BE_Factura : BE_Entidad
+    public class BE_Factura : BE_EntidadBase
     {
-        public int ID { get; set; }
-        public int NumeroFactura{ get; set; }
+        public string NumeroFactura{ get; set; }
         public BE_Cliente Cliente { get; set; }
-        public BE_Empleado Empleado { get; set; }
+        public int IdCliente { get; set; }
+
+        //public BE_Empleado Empleado { get; set; }
         public string TipoFactura { get; set; }
-        public List<BE_DetalleFactura> Detalles { get; set; }
+        public ICollection<BE_DetalleFactura> Detalles { get; set; }
         public decimal Subtotal { get; set; }
         public decimal Total { get; set; }
         public decimal IVA { get; set; }
@@ -28,21 +29,13 @@ namespace BE
 
         public BE_Factura()
         {
-            Cliente = new BE_Cliente();
-            Empleado = new BE_Empleado();
             Detalles = new List<BE_DetalleFactura>();
             FechaEmision = DateTime.Now;
         }
 
         public void CalcularTotal()
         {
-            Subtotal = 0;
-            foreach (var detalle in Detalles)
-            {
-                detalle.CalcularSubtotal();
-                Subtotal += detalle.Subtotal;
-            }
-
+            Subtotal = Detalles.Sum(d => d.Subtotal);
             IVA = Subtotal * 0.21m;
             Total = Subtotal + IVA;
         }
@@ -55,7 +48,7 @@ namespace BE
 
         public override string ToString()
         {
-            return $"Factura N° {IdFactura} - {FechaEmision:dd/MM/yyyy} - Total: ${Total:N2}";
+            return $"Factura N° {NumeroFactura} - {FechaEmision:dd/MM/yyyy} - Total: ${Total:N2}";
         }
     }
 }

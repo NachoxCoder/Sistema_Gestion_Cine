@@ -10,47 +10,46 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Mappers
 {
-    public class MapperFuncion : IAbmc<BE_Funcion>
+    public class MapperFuncion : MapperBase<BE_Funcion>, IAbmc<BE_Funcion>
     {
-        const string archivo = @".\Data\Funcion.xml";
-        const string archivoBoletos = @".\Data\Funcion_Boleto.xml";
+        private const string archivoFuncion = @".\Data\Funcion.xml";
+        private readonly MapperPelicula _mapperPelicula;
+        private readonly MapperSala _mapperSala;
 
-        public bool Borrar(BE_Funcion pObjFuncion)
+        public MapperFuncion() : base(archivoFuncion)
+        {
+            _mapperPelicula = new MapperPelicula();
+            _mapperSala = new MapperSala();
+        }
+
+        public bool Borrar(BE_Funcion pFuncion)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                XDocument xmlBoletos = XDocument.Load(archivoBoletos);
+                XDocument xml = CargarXml();
 
-                //Verificar que no existan boletos asociados a la funcion antes de borrarla
-                int boletosVendidos = xmlBoletos.Descendants("Funcion_Boleto").
-                    Count(x => int.Parse(x.Element("IdFuncion").Value) == pObjFuncion.ID);
-                if (boletosVendidos == 0)
+                var funcion = xml.Descendants("Funcion").
+                    FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pFuncion.ID);
+
+                if (funcion != null)
                 {
-                    var query = from x in docXML.Descendants("Funcion")
-                                where int.Parse(x.Attribute("IdFuncion").Value) == pObjFuncion.ID
-                                select x;
-                    query.Remove();
-                    docXML.Save(archivo);
+                    funcion.Remove();
+                    GuardarXml(xml);
                     return true;
                 }
                 return false;
             }
             catch (Exception ex)
             {
-
                 throw ex;
             }
         }
 
-        public int FuncionID()
+        private int GenerarNuevoID(XDocument xml)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                int ultimoId = docXML.Descendants("Funcion").Select(e => (int?)e.Attribute("IdFuncion"))
-                               .Max() ?? 0;
-                return ultimoId == 0 ? 1 : ultimoId + 1;
+                return xml.Descendants("Funcion").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
             }
             catch (Exception ex)
             {
@@ -58,41 +57,41 @@ namespace Mappers
             }
         }
 
-        public bool Guardar(BE_Funcion pObjFuncion)
+        public bool Guardar(BE_Funcion pFuncion)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
+                XDocument xml = CargarXml();
                 if (pObjFuncion.ID == 0)
                 {
-                    docXML.Element("Funciones").Add(new XElement("Funcion",
-                            new XAttribute("IdFuncion", FuncionID()),
-                            new XElement("IdPelicula", pObjFuncion.IdPelicula),
-                            new XElement("FechaFuncion", pObjFuncion.FechaFuncion.ToString("yyyy-MM-dd")),
-                            new XElement("HoraFuncion", pObjFuncion.HoraFuncion.ToString("HH:mm")),
-                            new XElement("IdSala", pObjFuncion.IdSala),
-                            new XElement("EstaActiva", pObjFuncion.EstaActiva),
-                            new XElement("Precio", pObjFuncion.Precio.ToString())));
+                    pFuncion.ID = GenerarNuevoID(xml);
+                    var nuevaFuncion = new XElement("Funcion",
+                            new XAttribute("ID", pFuncion.ID),
+                            new XElement("IdPelicula", pFuncion.IdPelicula),
+                            new XElement("FechaFuncion", pFuncion.FechaFuncion.ToString("yyyy-MM-dd")),
+                            new XElement("HoraFuncion", pFuncion.HoraFuncion.ToString("HH:mm")),
+                            new XElement("IdSala", pFuncion.IdSala),
+                            new XElement("EstaActiva", pFuncion.EstaActiva),
+                            new XElement("Precio", pFuncion.Precio.ToString("F2")));
 
-                    docXML.Save(archivo);
-                    return true;
+                    xml.Root.Add(nuevaFuncion);
                 }
                 else
                 {
-                    var query = from x in docXML.Descendants("Funcion")
-                                where x.Attribute("IdFuncion").Value == pObjFuncion.ID.ToString()
-                                select x;
-                    foreach (XElement item in query)
+                    var funcion = xml.Descendants("Funcion").
+                        FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pFuncion.ID);
+
+                    if (funcion != null)
                     {
-                        item.Element("IdPelicula").Value = pObjFuncion.IdPelicula.ToString();
-                        item.Element("FechaFuncion").Value = pObjFuncion.FechaFuncion.ToString("yyyy-MM-dd");
-                        item.Element("HoraFuncion").Value = pObjFuncion.HoraFuncion.ToString("HH:mm");
-                        item.Element("IdSala").Value = pObjFuncion.IdSala.ToString();
-                        item.Element("EstaActiva").Value = pObjFuncion.EstaActiva.ToString();
-                        item.Element("Precio").Value = pObjFuncion.Precio.ToString();
+                        funcion.Element("IdPelicula").Value = pFuncion.IdPelicula.ToString();
+                        funcion.Element("FechaFuncion").Value = pFuncion.FechaFuncion.ToString("yyyy-MM-dd");
+                        funcion.Element("HoraFuncion").Value = pFuncion.HoraFuncion.ToString("HH:mm");
+                        funcion.Element("IdSala").Value = pFuncion.IdSala.ToString();
+                        funcion.Element("EstaActiva").Value = pFuncion.EstaActiva.ToString();
                     }
                 }
-                docXML.Save(archivo);
+
+                GuardarXml(xml);
                 return true;
             }
             catch (Exception ex)
@@ -106,30 +105,32 @@ namespace Mappers
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                List<BE_Funcion> listaFunciones = new List<BE_Funcion>();
-                 var query = from x in docXML.Descendants("Funcion")
-                             select x;
-
-                foreach (XElement item in query)
+                XDocument xml = CargarXml();
+                var funciones = xml.Descendants("Funcion").Select(x => new BE_Funcion
                 {
-                    BE_Funcion objFuncion = new BE_Funcion
-                    { ID = int.Parse(item.Attribute("IdFuncion").Value),
-                        IdPelicula = int.Parse(item.Element("IdPelicula").Value),
-                        FechaFuncion = DateTime.Parse(item.Element("FechaFuncion").Value),
-                        HoraFuncion = TimeSpan.Parse(item.Element("HoraFuncion").Value),
-                        IdSala = int.Parse(item.Element("IdSala").Value),
-                        EstaActiva = bool.Parse(item.Element("EstaActiva").Value),
-                        Precio = decimal.Parse(item.Element("Precio").Value)
-                    };
-                    
-                    listaFunciones.Add(objFuncion);
+                    ID = int.Parse(x.Attribute("ID").Value),
+                    IdPelicula = int.Parse(x.Element("IdPelicula").Value),
+                    FechaFuncion = DateTime.Parse(x.Element("FechaFuncion").Value),
+                    HoraFuncion = TimeSpan.Parse(x.Element("HoraFuncion").Value),
+                    IdSala = int.Parse(x.Element("IdSala").Value),
+                    EstaActiva = bool.Parse(x.Element("EstaActiva").Value),
+                    Precio = decimal.Parse(x.Element("Precio").Value)
+                }).ToList();    
+               
+                var peliculas = _mapperPelicula.Consultar();
+                var salas = _mapperSala.Consultar();
+
+                foreach (var funcion in funciones)
+                {
+                    funcion.Pelicula = peliculas.FirstOrDefault(x => x.ID == funcion.IdPelicula);
+                    funcion.Sala = salas.FirstOrDefault(x => x.ID == funcion.IdSala);
                 }
-                return listaFunciones;
+
+                return funciones;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return new List<BE_Funcion>();
             }
 
         }

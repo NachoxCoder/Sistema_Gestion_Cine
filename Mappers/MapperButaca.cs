@@ -9,93 +9,82 @@ using Interfaces;
 
 namespace Mappers
 {
-    public class MapperButaca : IAbmc<BE_Butaca>
+    public class MapperButaca : MapperBase<BE_Butaca>, IAbmc<BE_Butaca>
     {
-        const string archivo = @".\Data\Butaca.xml";
-        const string archivoButacaFuncion = @".\Data\Butaca_Funcion.xml";
+        private const string archivoButaca = @".\Data\Butaca.xml";
+        private const string archivoButacaFuncion = @".\Data\Butaca_Funcion.xml";
+        private readonly MapperSala mapperSala;
+
+        public MapperButaca() : base(archivoButaca) 
+        {
+            mapperSala = new MapperSala();
+        }
 
         public bool Borrar(BE_Butaca pObjButaca)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                XDocument xmlButacaFuncion = XDocument.Load(archivoButacaFuncion);
+                XDocument docXML = CargarXml();
 
-                //Verificar que no existan butacas ocupadas o asociadas a alguna funcion antes de borrarla
-                bool butacaOupada = xmlButacaFuncion.Descendants("Butaca_Funcion").
-                                    Any(x => int.Parse(x.Element("IdButaca").Value) == pObjButaca.ID);
-                if (!butacaOupada)
+                var butaca = docXML.Descendants("Butaca").
+                    FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pObjButaca.ID);
+
+                if (butaca != null)
                 {
-                    var query = from x in docXML.Descendants("Butaca")
-                                where int.Parse(x.Attribute("IdButaca").Value) == pObjButaca.IdButaca
-                                select x;
-                    query.Remove();
-                    docXML.Save(archivo);
+                    butaca.Remove();
+                    GuardarXml(docXML);
                     return true;
                 }
                 return false;
             }
-            catch (Exception ex)
+            catch
             {
 
-                throw ex;
+                return false;
             }
         }
 
-        public int ButacaID()
+        public int GenerarNuevoId(XDocument xml)
         {
-            try
-            {
-                XDocument docXML = XDocument.Load(archivo);
-                int ultimoId = docXML.Descendants("Butaca").Select(e => (int?)e.Attribute("IdButaca"))
-                               .Max() ?? 0;
-                return ultimoId == 0 ? 1 : ultimoId + 1;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            return xml.Descendants("Butaca").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
         }
 
-        public bool Guardar(BE_Butaca objBEButaca)
+        public bool Guardar(BE_Butaca pButaca)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                if (objBEButaca.IdButaca == 0)
+                XDocument docXML = CargarXml();
+                if (pButaca.ID == 0)
                 {
-                    docXML.Element("Butacas").Add(new XElement("Butaca",
-                    new XAttribute("IdButaca", ButacaID()),
-                    new XElement("IdSala", objBEButaca.Sala.ID),
-                    new XElement("Fila", objBEButaca.Fila),
-                    new XElement("Numero", objBEButaca.Numero),
-                    new XElement("Disponible", objBEButaca.Disponible)
-                    ));
+                    pButaca.ID = GenerarNuevoId(docXML);
+                    var nuevaButaca = new XElement("Butaca",
+                    new XAttribute("ID", pButaca.ID),
+                    new XElement("IdSala", pButaca.IdSala),
+                    new XElement("Fila", pButaca.Fila),
+                    new XElement("Numero", pButaca.Numero),
+                    new XElement("Disponible", pButaca.Disponible));
 
-                docXML.Save(archivo);
-                return true;
+                    docXML.Root.Add(nuevaButaca);
                 }
                 else
                 {
-                    var query = from x in docXML.Descendants("Butaca")
-                                where int.Parse(x.Attribute("IdButaca").Value) == objBEButaca.IdButaca
-                                select x;
-                    foreach (var item in query)
+                    var butaca = docXML.Descendants("Butaca").
+                        FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pButaca.ID);
+                    if (butaca != null) 
                     {
-                        item.Element("IdSala").Value = objBEButaca.Sala.ID.ToString();
-                        item.Element("Fila").Value = objBEButaca.Fila;
-                        item.Element("Numero").Value = objBEButaca.Numero.ToString();
-                        item.Element("Disponible").Value = objBEButaca.Disponible.ToString();
+                        butaca.Element("IdSala").Value = pButaca.IdSala.ToString();
+                        butaca.Element("Fila").Value = pButaca.Fila;
+                        butaca.Element("Numero").Value = pButaca.Numero.ToString();
+                        butaca.Element("Disponible").Value = pButaca.Disponible.ToString();
                     }
-
-                    docXML.Save(archivo);
-                    return true;
                 }
-                
+
+                GuardarXml(docXML);
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return false;
             }
         }
 
@@ -103,48 +92,55 @@ namespace Mappers
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                MapperSala mppSala = new MapperSala();
+                XDocument docXML = CargarXml();
+                var salas = mapperSala.Consultar();
 
-                var query = from x in docXML.Descendants("Butaca") select x;
-                List<BE_Butaca> listaButacas = new List<BE_Butaca>();
-                foreach (XElement item in query)
+                var butacas = docXML.Descendants("Butaca").Select(x => new BE_Butaca
                 {
-                    BE_Butaca objBEButaca = new BE_Butaca();
-                    objBEButaca.IdButaca = int.Parse(item.Attribute("IdButaca").Value);
-                    objBEButaca.Sala.ID = int.Parse(item.Element("IdSala").Value);
-                    objBEButaca.Fila = item.Element("Fila").Value;
-                    objBEButaca.Numero = int.Parse(item.Element("Numero").Value);
-                    objBEButaca.Disponible = bool.Parse(item.Element("Disponible").Value);
-                    listaButacas.Add(objBEButaca);
+                    ID = int.Parse(x.Attribute("ID").Value),
+                    IdSala = int.Parse(x.Element("IdSala").Value),
+                    Fila = x.Element("Fila").Value,
+                    Numero = int.Parse(x.Element("Numero").Value),
+                    Disponible = bool.Parse(x.Element("Disponible").Value)
+                }).ToList();
+
+                foreach (var butaca in butacas)
+                {
+                    butaca.Sala = salas.FirstOrDefault(x => x.ID == butaca.IdSala);
                 }
-                return listaButacas;
+                return butacas;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return new List<BE_Butaca>();
             }
         }
 
-        public List<BE_Butaca> ListarButacasDisponibles(BE_Funcion pFuncion)
+        public List<BE_Butaca> ConsultarButacasPorSala(int idSala)
+        {
+            return Consultar().Where(x => x.IdSala == idSala).ToList();
+        }
+
+        public List<BE_Butaca> ConsultarButacasDisponiblesPorSala(int idSala)
+        {
+            return Consultar().Where(x => x.IdSala == idSala && x.Disponible).ToList();
+        }
+
+        public List<BE_Butaca> ConsultarButacasOcupadas()
         {
             try
             {
-                //Obtener todas las butacas de la sala de la funcion
-                List<BE_Butaca> listaButacas = Consultar().
-                                               Where(b => b.Sala.ID == pFuncion.Sala.ID && b.Disponible == true).
-                                               ToList();
-                //Obtener las butacas ocupadas de la funcion
-                XDocument docButacaFuncion = XDocument.Load(archivoButacaFuncion);
-                var butacasOcupadas = docButacaFuncion.Descendants("Butaca_Funcion").
-                                      Where(x => int.Parse(x.Element("IdFuncion").Value) == pFuncion.ID).
-                                      Select(x => int.Parse(x.Element("IdButaca").Value));
-                // Retorna solo las butacas disponibles
-                return listaButacas.Where(x => !butacasOcupadas.Contains(x.IdButaca)).ToList();
+                XDocument xmlButacaFuncion = XDocument.Load(archivoButacaFuncion);
+
+                var butacasOcupadas = xmlButacaFuncion.Descendants("Butaca_Funcion")
+                                      .Select(x => int.Parse(x.Element("IdButaca").Value)).Distinct().ToList();
+
+                return Consultar().Where(x => butacasOcupadas.Contains(x.ID)).ToList();
             }
             catch (Exception ex)
             {
-                throw ex;
+
+                throw new Exception($"Error al consultar butacas ocupadas: {ex.Message}", ex);
             }
         }
 
@@ -152,28 +148,39 @@ namespace Mappers
         {
             try
             {
-                XDocument docButacaFuncion = XDocument.Load(archivoButacaFuncion);
+                XDocument docXML = CargarXml();
+                XDocument xmlButacaFuncion = XDocument.Load(archivoButacaFuncion);
 
-                //Verificar que la butaca no este ocupada
-                bool butacaOcupada = docButacaFuncion.Descendants("Butaca_Funcion").
-                                     Any(x => int.Parse(x.Element("IdButaca").Value) == pButaca.IdButaca &&
-                                              int.Parse(x.Element("IdFuncion").Value) == pFuncion.ID);
+                var butacaOcupada = xmlButacaFuncion.Descendants("Butaca_Funcion")
+                                    .Any(x => int.Parse(x.Element("IdButaca").Value) == pButaca.ID &&
+                                    int.Parse(x.Element("IdFuncion").Value) == pFuncion.ID);
+
                 if (!butacaOcupada)
                 {
-                    docButacaFuncion.Element("Butacas_Funciones").Add(new XElement("Butaca_Funcion",
-                    new XElement("IdButaca", pButaca.ID),
-                    new XElement("IdFuncion", pFuncion.ID),
-                    new XElement("FechaOcupacion", DateTime.Now.ToString())
-                    ));
+                    //Registrar butaca ocupada
+                    xmlButacaFuncion.Element("Butacas_Funciones").Add(new XElement("Butaca_Funcion",
+                        new XElement("IdButaca", pButaca.ID),
+                        new XElement("IdFuncion", pFuncion.ID),
+                        new XElement("FechaOcupacion", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))));
 
-                docButacaFuncion.Save(archivoButacaFuncion);
-                return true;
+                    //Actualizar el Estado de la Butaca
+                    var butaca = docXML.Descendants("Butaca")
+                                 .FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pButaca.ID);
+
+                    if (butaca != null)
+                    {
+                        butaca.Element("Disponible").Value = "false";
+                    }
+
+                    docXML.Save(archivoButaca);
+                    xmlButacaFuncion.Save(archivoButacaFuncion);
+                    return true;
                 }
                 return false;
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new Exception($"Error al ocupar la butaca: {ex.Message}", ex);
             }
         }
     }

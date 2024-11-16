@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 
 namespace BE
 {
-    public class BE_Proveedor : BE_Entidad
+    public class BE_Proveedor : BE_EntidadBase
     {
         public BE_Proveedor()
         {
             OrdenesCompra = new List<BE_OrdenCompra>();
         }
-        public int IdProveedor { get; set; }
         public string NombreProveedor { get; set; }
         public string DireccionProveedor { get; set; }
         public string TelefonoProveedor { get; set; }

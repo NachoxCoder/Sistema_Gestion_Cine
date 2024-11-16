@@ -9,94 +9,79 @@ using System.Xml.Linq;
 
 namespace Mappers
 {
-    public class MapperMembresia : IAbmc<BE_Membresia>
+    public class MapperMembresia : MapperBase<BE_Membresia>, IAbmc<BE_Membresia>
     {
-        const string archivo = @".\Data\Membresia.xml";
-        const string archivoClienteMembresia = @".\Data\Cliente_Membresia.xml";
+        const string archivoMembresia = @".\Data\Membresia.xml";
+        private readonly MapperCliente _mapperCliente;
 
-        public bool Borrar(BE_Membresia pObjMembresia)
+        public MapperMembresia() : base(archivoMembresia)
+        {
+            _mapperCliente = new MapperCliente();
+        }
+
+        public bool Borrar(BE_Membresia pMembresia)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                XDocument xmlClienteMembresia = XDocument.Load(archivoClienteMembresia);
-
-                //Verificar que no existan clientes asociados a la membresia antes de borrarla
-                var membresiaEnUso = xmlClienteMembresia.Descendants("Cliente_Membresia").
-                                Any(x => int.Parse(x.Element("IdMembresia").Value) == pObjMembresia.IdMembresia);
-                if (!membresiaEnUso)
+                XDocument docXML = CargarXml();
+                var membresia = docXML.Descendants("Membresia").
+                                FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pMembresia.ID);
+                if (membresia != null)
                 {
-                    var query = from x in docXML.Descendants("Membresia")
-                                where int.Parse(x.Attribute("IdMembresia").Value) == pObjMembresia.ID
-                                select x;
-
-                    query.Remove();
-                    docXML.Save(archivo);
-                    return true;
+                   membresia.Remove();
+                   GuardarXml(docXML);
+                   return true;
                 }
                 return false;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return false;
             }
         }
 
-        public int MembresiaID()
+        public bool Guardar(BE_Membresia pMembresia)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                int ultimoId = docXML.Descendants("Membresia").Select(e => (int?)e.Attribute("IdMembresia"))
-                               .Max() ?? 0;
-                return ultimoId == 0 ? 1 : ultimoId + 1;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+                XDocument docXML = CargarXml();
 
-        public bool Guardar(BE_Membresia pObjBEMembresia)
-        {
-            try
-            {
-                XDocument docXML = XDocument.Load(archivo);
-
-                if (pObjBEMembresia.ID == 0)
+                if (pMembresia.ID == 0)
                 {
-                    docXML.Element("Membresias").Add(new XElement("Membresia",
-                                        new XAttribute("IdMembresia", MembresiaID()),
-                                        new XElement("Tipo", pObjBEMembresia.Tipo.ToString()),
-                                        new XElement("CostoMensual", pObjBEMembresia.CostoMensual.ToString()),
-                                        new XElement("FechaInicio", pObjBEMembresia.FechaInicio.ToString()),
-                                        new XElement("FechaFin", pObjBEMembresia.FechaFin.ToString()),
-                                        new XElement("Estado", pObjBEMembresia.EstaActiva.ToString())
-                                        ));
-                    docXML.Save(archivo);
-                    return true;
+                    pMembresia.ID = GenerarNuevoId(docXML);
+
+                    var nuevaMembresia = new XElement("Membresia",
+                                        new XAttribute("ID", pMembresia.ID),
+                                        new XElement("IdCliente", pMembresia.IdCliente),
+                                        new XElement("Tipo", pMembresia.Tipo.ToString()),
+                                        new XElement("CostoMensual", pMembresia.CostoMensual.ToString("F2")),
+                                        new XElement("FechaInicio", pMembresia.FechaInicio.ToString("yyyy-MM-dd")),
+                                        new XElement("FechaFin", pMembresia.FechaFin.ToString("yyyy-MM-dd")),
+                                        new XElement("Estado", pMembresia.EstaActiva));
+
+                    docXML.Root.Add(nuevaMembresia);
                 }
                 else
                 {
-                    var query = from x in docXML.Descendants("Membresia")
-                                where x.Attribute("IdMembresia").Value == pObjBEMembresia.ID.ToString()
-                                select x;
+                    var membresia = docXML.Descendants("Membresia").
+                        FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pMembresia.ID);
 
-                    foreach (XElement item in query)
+                    if (membresia != null)
                     {
-                        item.Element("Tipo").Value = pObjBEMembresia.Tipo.ToString();
-                        item.Element("CostoMensual").Value = pObjBEMembresia.CostoMensual.ToString();
-                        item.Element("FechaInicio").Value = pObjBEMembresia.FechaInicio.ToString();
-                        item.Element("FechaFin").Value = pObjBEMembresia.FechaFin.ToString();
-                        item.Element("Estado").Value = pObjBEMembresia.EstaActiva.ToString();
+                        membresia.Element("Tipo").Value = pMembresia.Tipo.ToString();
+                        membresia.Element("CostoMensual").Value = pMembresia.CostoMensual.ToString("F2");
+                        membresia.Element("FechaInicio").Value = pMembresia.FechaInicio.ToString("yyyy-MM-dd");
+                        membresia.Element("FechaFin").Value = pMembresia.FechaFin.ToString("yyyy-MM-dd");
+                        membresia.Element("Estado").Value = pMembresia.EstaActiva.ToString();
+                        membresia.Element("IdCliente").Value = pMembresia.IdCliente.ToString();
                     }
-                    docXML.Save(archivo);
-                    return true;
                 }
+                GuardarXml(docXML);
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return false;
             }
         }
 
@@ -104,29 +89,36 @@ namespace Mappers
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                var query = from x in docXML.Descendants("Membresia")
-                            select x;
-                List<BE_Membresia> listaMembresias = new List<BE_Membresia>();
-                foreach (XElement item in query)
+                XDocument docXML = CargarXml();
+                var clientes = _mapperCliente.Consultar();
+
+                var membresias = docXML.Descendants("Membresia").Select(x => new BE_Membresia
                 {
-                    BE_Membresia membresia = new BE_Membresia();
-                    {
-                        membresia.ID = int.Parse(item.Attribute("IdMembresia").Value);
-                        membresia.Tipo = item.Element("Tipo").Value;
-                        membresia.CostoMensual = decimal.Parse(item.Element("CostoMensual").Value);
-                        membresia.FechaInicio = DateTime.Parse(item.Element("FechaInicio").Value);
-                        membresia.FechaFin = DateTime.Parse(item.Element("FechaFin").Value);
-                        membresia.EstaActiva = bool.Parse(item.Element("Estado").Value);
-                    }
-                    listaMembresias.Add(membresia);
+                    ID = int.Parse(x.Attribute("ID").Value),
+                    IdCliente = int.Parse(x.Element("IdCliente").Value),
+                    Tipo = (TipoMembresia)Enum.Parse(typeof(TipoMembresia), x.Element("TipoMembresia").Value),
+                    CostoMensual = decimal.Parse(x.Element("CostoMensual").Value),
+                    FechaInicio = DateTime.Parse(x.Element("FechaInicio").Value),
+                    FechaFin = DateTime.Parse(x.Element("FechaFin").Value),
+                    EstaActiva = bool.Parse(x.Element("Estado").Value),
+                }).ToList();
+
+                foreach (var membresia in membresias)
+                {
+                    membresia.Cliente = clientes.FirstOrDefault(c => c.ID == membresia.IdCliente);
                 }
-                return listaMembresias;
+                return membresias;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return new List<BE_Membresia>();
             }
+        }
+
+
+        public int GenerarNuevoId(XDocument pDocXml)
+        {
+            return pDocXml.Descendants("Membresia").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
         }
 
         public bool AsignarMembresiaCliente(BE_Cliente pCliente, BE_Membresia pMembresia)

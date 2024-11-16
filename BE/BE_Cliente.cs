@@ -6,17 +6,16 @@ using System.Threading.Tasks;
 
 namespace BE
 {
-    public class BE_Cliente : BE_Entidad
+    public class BE_Cliente : BE_EntidadBase
     {
         public BE_Cliente()
         {
             Boletos = new List<BE_Boleto>();
         }
-        public int IdCliente { get; set; }
         public string Nombre { get; set; }
         public string Apellido { get; set; }
         public string DNI { get; set; }
-        public string Mail { get; set; }
+        public string Email { get; set; }
         public string Telefono { get; set; }
         public string Direccion { get; set; }
         public DateTime FechaNacimiento { get; set; }

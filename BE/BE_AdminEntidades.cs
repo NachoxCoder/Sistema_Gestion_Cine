@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BE
 {
-    public class BE_AdminEntidades : BE_Entidad
+    public class BE_AdminEntidades : BE_EntidadBase
     {
         public List<BE_Pelicula> Peliculas { get; set; }
         public List<BE_Funcion> Funciones { get; set; }

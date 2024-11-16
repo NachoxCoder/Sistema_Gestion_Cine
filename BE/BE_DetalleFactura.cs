@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 
 namespace BE
 {
-    public class BE_DetalleFactura
+    public class BE_DetalleFactura : BE_EntidadBase
     {
+        public int IdFactura { get; set; }
         public string Descripcion { get; set; }
         public int Cantidad { get; set; }
         public decimal PrecioUnitario { get; set; }
         public decimal Subtotal { get; set; }
+        public virtual BE_Factura Factura { get; set; }
 
         public BE_DetalleFactura()
         {

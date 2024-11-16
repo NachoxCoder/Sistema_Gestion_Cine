@@ -7,13 +7,12 @@ using Interfaces;
 
 namespace BE
 {
-    public class BE_Funcion : BE_Entidad
+    public class BE_Funcion : BE_EntidadBase
     {
         public BE_Funcion() 
         { 
             Boletos = new List<BE_Boleto>();
         }
-        public int IdFuncion { get; set; }
         public int IdPelicula { get; set; }
         public DateTime FechaFuncion { get; set; }
         public TimeSpan HoraFuncion { get; set; }

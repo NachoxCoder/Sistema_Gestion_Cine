@@ -7,46 +7,39 @@ using Interfaces;
 
 namespace Mappers
 {
-    public class MapperPelicula : IAbmc<BE_Pelicula>
+    public class MapperPelicula : MapperBase<BE_Pelicula> IAbmc<BE_Pelicula>
     {
-        const string archivo = @".\Data\Pelicula.xml";
-        const string archivoFunciones= @".\Data\Pelicula_Funcion.xml";
+        private const string ARCHIVO_PELICULA = @".\Data\Pelicula.xml";
 
-        public bool Borrar(BE_Pelicula pObjBEPelicula)
+        public MapperPelicula() : base(ARCHIVO_PELICULA) { }
+
+        public bool Borrar(BE_Pelicula pPelicula)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-            
-                //Verifica si hay funciones asociadas a la pelicula antes de borrarla
-                XDocument xmlFunciones = XDocument.Load(archivoFunciones);
+                XDocument xml = CargarXml();
 
-                int funcionesAsociadas = xmlFunciones.Descendants("Pelicula_Funcion").
-                    Count(x => int.Parse(x.Element("IdPelicula").Value) == pObjBEPelicula.IdPelicula);
+                var pelicula = xml.Descendants("Pelicula").
+                    FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pPelicula.ID);
 
-                if (funcionesAsociadas == 0)
+                if (pelicula != null)
                 {
-                    var query = from x in docXML.Descendants("Pelicula")
-                                where int.Parse(x.Element("IdPelicula").Value) == pObjBEPelicula.IdPelicula
-                                select x;
-                    query.Remove();
-                    docXML.Save(archivo);
+                    pelicula.Remove();
+                    GuardarXml(xml);
                     return true;
                 }
                 return false;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return false;
             }
         }
-        public int PeliculaID()
+        private int GenerarNuevoID(XDocument xml)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                int ultimoId = docXML.Descendants("Pelicula").Select(e => (int?)e.Attribute("IdPelicula")).Max() ?? 0;
-                return ultimoId == 0 ? 1 : ultimoId + 1;
+                return xml.Descendants("Pelicula").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
             }
             catch (Exception ex)
             {
@@ -54,47 +47,46 @@ namespace Mappers
             }
         }
         
-        public bool Guardar(BE_Pelicula objBEPelicula)
+        public bool Guardar(BE_Pelicula pPelicula)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                if (objBEPelicula.IdPelicula == 0)
+                XDocument xml = CargarXml();
+                if (pPelicula.ID == 0)
                 {
-                    docXML.Element("Peliculas").Add(new XElement("Pelicula",
-                        new XAttribute("IdPelicula", PeliculaID()),
-                        new XElement("Titulo", objBEPelicula.Titulo.Trim()),
-                        new XElement("Sinopsis", objBEPelicula.Sinopsis.Trim()),
-                        new XElement("Duracion", objBEPelicula.Duracion),
-                        new XElement("Rating", objBEPelicula.Rating.Trim()),
-                        new XElement("EstaActiva", objBEPelicula.EstaActiva)
-                    ));
+                    pPelicula.ID = GenerarNuevoId(xml);
+                    var nuevaPelicula = new XElement("Pelicula",
+                        new XAttribute("IdPelicula", pPelicula.ID),
+                        new XElement("Titulo", pPelicula.Titulo),
+                        new XElement("Sinopsis", pPelicula.Sinopsis),
+                        new XElement("Duracion", pPelicula.Duracion),
+                        new XElement("Rating", pPelicula.Rating),
+                        new XElement("EstaActiva", pPelicula.EstaActiva));
 
-                    docXML.Save(archivo);
-                    return true;
+                    xml.Root.Add(nuevaPelicula);
                 }
                 else
                 {
-                    var query = from x in docXML.Descendants("Pelicula")
-                                where x.Attribute("IdPelicula").Value == objBEPelicula.ID.ToString() 
-                                select x;
+                    var pelicula = xml.Descendants("Pelicula").
+                        FirstOrDefault(x => int.Parse(x.Attribute("IdPelicula").Value) == pPelicula.ID);
 
-                    foreach (XElement item in query)
+                    if (pelicula != null)
                     {
-                        item.Element("Titulo").Value = objBEPelicula.Titulo.Trim();
-                        item.Element("Sinopsis").Value = objBEPelicula.Sinopsis.Trim();
-                        item.Element("Duracion").Value = objBEPelicula.Duracion.ToString();
-                        item.Element("Rating").Value = objBEPelicula.Rating.Trim();
-                        item.Element("EstaActiva").Value = objBEPelicula.EstaActiva.ToString();
+                        pelicula.Element("Titulo").Value = pPelicula.Titulo;
+                        pelicula.Element("Sinopsis").Value = pPelicula.Sinopsis;
+                        pelicula.Element("Duracion").Value = pPelicula.Duracion.ToString();
+                        pelicula.Element("Rating").Value = pPelicula.Rating;
+                        pelicula.Element("EstaActiva").Value = pPelicula.EstaActiva.ToString();
                     }
-
-                    docXML.Save(archivo);
-                    return true;
                 }
+
+                GuardarXml(xml);
+                return true;
+                
             }   
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return false;
             }
         }
 
@@ -102,30 +94,21 @@ namespace Mappers
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
-                List<BE_Pelicula> listaPeliculas = new List<BE_Pelicula>();
+                XDocument xml = CargarXml();
 
-                var query = from x in docXML.Descendants("Pelicula")
-                            select x;
-
-                foreach (XElement item in query)
+                return xml.Descendants("Pelicula").Select(x => new BE_Pelicula
                 {
-                    BE_Pelicula objBEPelicula = new BE_Pelicula
-                    {
-                        IdPelicula = int.Parse(item.Attribute("IdPelicula").Value),
-                        Titulo = item.Element("Titulo").Value,
-                        Sinopsis = item.Element("Sinopsis").Value,
-                        Duracion = int.Parse(item.Element("Duracion").Value),
-                        Rating = item.Element("Rating").Value,
-                    };
-
-                    listaPeliculas.Add(objBEPelicula);
-                }
-                return listaPeliculas;
+                    ID = int.Parse(x.Attribute("ID").Value),
+                    Titulo = x.Element("Titulo").Value,
+                    Sinopsis = x.Element("Sinopsis").Value,
+                    Duracion = int.Parse(x.Element("Duracion").Value),
+                    Rating = x.Element("Rating").Value,
+                    EstaActiva = bool.Parse(x.Element("EstaActiva").Value)
+                }).ToList();
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return new List<BE_Pelicula>();
             }
         }
     }

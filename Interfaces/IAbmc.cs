@@ -10,7 +10,6 @@ namespace Interfaces
     {
         bool Guardar(T pObj);
         bool Borrar(T pObj);
-        //void Modificar(T pObj);
         List<T> Consultar();
     }
 }

@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace BE
 {
-     public class BE_Butaca : BE_Entidad
+     public class BE_Butaca : BE_EntidadBase
     {
-        public int IdButaca { get; set; }
         public BE_Sala Sala { get; set; }
         public string Fila { get; set; }
         public int Numero { get; set; }
         public bool Disponible { get; set; }
+        public int IdSala { get; set; }
 
         public BE_Butaca()
         {

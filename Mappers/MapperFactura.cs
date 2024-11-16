@@ -9,10 +9,16 @@ using System.Xml.Linq;
 
 namespace Mappers
 {
-    public class MapperFactura : IAbmc<BE_Factura>
+    public class MapperFactura : MapperBase<BE_Factura>, IAbmc<BE_Factura>
     {
-        const string archivo = @".\DATA\Factura.xml";
-        const string archivoDetalleFactura = @".\DATA\Detalle_Factura.xml";
+        private const string archivoFactura = @".\DATA\Factura.xml";
+        private const string archivoDetalleFactura = @".\DATA\Detalle_Factura.xml";
+        private readonly MapperCliente mapperCliente;
+
+        public MapperFactura() : base(archivoFactura)
+        {
+            mapperCliente = new MapperCliente();
+        }
 
         public bool Borrar(BE_Factura pObjFactura)
         {
@@ -44,48 +50,51 @@ namespace Mappers
                 throw ex;
             }
         }
-        public bool Guardar(BE_Factura pObjFactura)
+        public bool Guardar(BE_Factura pFactura)
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
+                XDocument xmlFactura = XDocument.Load(archivoFactura);
                 XDocument xmlDetalleFactura = XDocument.Load(archivoDetalleFactura);
 
-                if (pObjFactura.ID == 0)
+                if (pFactura.ID == 0)
                 {
-                    int nuevoId = FacturaID();
-                    pObjFactura.ID = nuevoId;
-                    pObjFactura.NumeroFactura = GenerarNumeroFactura(nuevoId);
+                    pFactura.ID = GenerarNuevoID(xmlFactura);
+                    pFactura.NumeroFactura = GenerarNumeroFactura(pFactura.ID);
 
-                    docXML.Element("Facturas").Add(new XElement("Factura", 
-                        new XAttribute("FacturaId",nuevoId),
-                        new XElement("IdFactura", pObjFactura.NumeroFactura),
-                        new XElement("IdCliente", pObjFactura.Cliente.ID),
-                        new XElement("FechaEmision", pObjFactura.FechaEmision.ToString("yyyy-MM-dd HH:mm:ss")),
-                        new XElement("IdEmpleado", pObjFactura.Empleado.ID),
-                        new XElement("TipoFactura", pObjFactura.TipoFactura),
-                        new XElement("Subtotal", pObjFactura.Subtotal.ToString()),
-                        new XElement("Total", pObjFactura.Total.ToString()),
-                        new XElement("IVA", pObjFactura.IVA.ToString()),
-                        new XElement("MetodoPago", pObjFactura.MetodoPago)));
+                    var nuevaFactura = new XElement("Factura", 
+                        new XAttribute("ID",pFactura.ID),
+                        new XElement("NUmeroFactura", pFactura.NumeroFactura),
+                        new XElement("IdCliente", pFactura.Cliente.ID),
+                        new XElement("FechaEmision", pFactura.FechaEmision.ToString("yyyy-MM-dd HH:mm:ss")),
+                        new XElement("TipoFactura", pFactura.TipoFactura),
+                        new XElement("Subtotal", pFactura.Subtotal.ToString("F2")),
+                        new XElement("Total", pFactura.Total.ToString("F2")),
+                        new XElement("IVA", pFactura.IVA.ToString("F2")),
+                        new XElement("MetodoPago", pFactura.MetodoPago));
 
-                    foreach (BE_DetalleFactura item in pObjFactura.Detalles)
+                    xmlFactura.Root.Add(nuevaFactura);
+
+                    foreach (var producto in pFactura.Detalles)
                     {
-                        xmlDetalleFactura.Element("Detalle_Facturas").Add(new XElement("Detalle_Factura",
-                            new XElement("FacturaId", nuevoId),
-                            new XElement("Descripcion", item.Descripcion),
-                            new XElement("Cantidad", item.Cantidad),
-                            new XElement("PrecioUnitario", item.PrecioUnitario.ToString()),
-                            new XElement("Subtotal", item.Subtotal.ToString())));
+                        var nuevoProducto = new XElement("Detalle_Factura",
+                            new XAttribute("ID", GenerarNuevoProductoID(xmlDetalleFactura)),
+                            new XElement("FacturaId", pFactura.ID),
+                            new XElement("Descripcion", producto.Descripcion),
+                            new XElement("Cantidad", producto.Cantidad),
+                            new XElement("PrecioUnitario", producto.PrecioUnitario.ToString("F2")),
+                            new XElement("Subtotal", producto.Subtotal.ToString("F2")));
+
+                        xmlDetalleFactura.Root.Add(nuevoProducto);
                     }
                 }
-                docXML.Save(archivo);
+                GuardarXml(xmlFactura);
                 xmlDetalleFactura.Save(archivoDetalleFactura);
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return false;
             }
         }
 
@@ -93,57 +102,65 @@ namespace Mappers
         {
             try
             {
-                XDocument docXML = XDocument.Load(archivo);
+                XDocument xmlFactura = CargarXml();
                 XDocument xmlDetalleFactura = XDocument.Load(archivoDetalleFactura);
-                MapperCliente objMapperCliente = new MapperCliente();
-                MapperEmpleado objMapperEmpleado = new MapperEmpleado();
+                var clientes = mapperCliente.Consultar();
 
-                var query = from x in docXML.Descendants("Factura")
-                            select x;
-                List<BE_Factura> listaFacturas = new List<BE_Factura>();
-
-                foreach (XElement x in query)
+                var facturas = xmlFactura.Descendants("Factura").Select(x => new BE_Factura
                 {
-                    BE_Factura factura = new BE_Factura
-                    {
-                        ID = int.Parse(x.Attribute("FacturaId").Value),
-                        NumeroFactura = int.Parse(x.Element("NumeroFactura").Value),
-                        Cliente = objMapperCliente.Consultar().
-                                  Find(e => e.ID == int.Parse(x.Element("ClientID").Value)),
-                        Empleado = objMapperEmpleado.Consultar().
-                                  Find(e => e.ID == int.Parse(x.Element("EmpleadoID").Value)),
-                        FechaEmision = (DateTime)x.Element("FechaEmision"),
-                        TipoFactura = x.Element("TipoFactura").Value,
-                        Subtotal = decimal.Parse(x.Element("Subtotal").Value),
-                        Total = decimal.Parse(x.Element("Total").Value),
-                        IVA = decimal.Parse(x.Element("IVA").Value),
-                        MetodoPago = x.Element("MetodoPago").Value
-                    };
+                    ID = int.Parse(x.Attribute("ID").Value),
+                    NumeroFactura = x.Element("NumeroFactura").Value,
+                    Cliente = clientes.Find(c => c.ID == int.Parse(x.Element("IdCliente").Value)),
+                    FechaEmision = DateTime.Parse(x.Element("FechaEmision").Value),
+                    TipoFactura = x.Element("TipoFactura").Value,
+                    Subtotal = decimal.Parse(x.Element("Subtotal").Value),
+                    Total = decimal.Parse(x.Element("Total").Value),
+                    IVA = decimal.Parse(x.Element("IVA").Value),
+                    MetodoPago = x.Element("MetodoPago").Value
+                }).ToList();
 
-                    //Cargar detalles de la factura
-                    var queryDetalle = from y in xmlDetalleFactura.Descendants("Detalle_Factura")
-                                       where y.Element("FacturaId").Value == factura.ID.ToString()
-                                       select new BE_DetalleFactura
-                                       {
-                                           Descripcion = y.Element("Descripcion").Value,
-                                           Cantidad = int.Parse(y.Element("Cantidad").Value),
-                                           PrecioUnitario = decimal.Parse(y.Element("PrecioUnitario").Value),
-                                           Subtotal = decimal.Parse(y.Element("Subtotal").Value)
-                                       };
-                    factura.Detalles = queryDetalle.ToList();
-                    listaFacturas.Add(factura);
+                foreach (var factura in facturas)
+                {
+                    factura.Cliente = clientes.FirstOrDefault(c => c.ID == factura.IdCliente);
+                    factura.Detalles = CargarDetalles(xmlDetalleFactura, factura.ID);
                 }
-                
-                return listaFacturas;
+
+                return facturas;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return new List<BE_Factura>();
             }
         }
+
+        private List<BE_DetalleFactura> CargarDetalles(XDocument pXmlDoc, int pIdFactura)
+        {
+            return pXmlDoc.Descendants("Detalle_Factura")
+                .Where(x => int.Parse(x.Element("FacturaId").Value) == pIdFactura)
+                .Select(x => new BE_DetalleFactura
+                {
+                    ID = int.Parse(x.Attribute("ID").Value),
+                    IdFactura = pIdFactura,
+                    Descripcion = x.Element("Descripcion").Value,
+                    Cantidad = int.Parse(x.Element("Cantidad").Value),
+                    PrecioUnitario = decimal.Parse(x.Element("PrecioUnitario").Value),
+                    Subtotal = decimal.Parse(x.Element("Subtotal").Value)
+                }).ToList();
+        }
+
         private string GenerarNumeroFactura(int pIdFactura)
         {
             return $"F{DateTime.Now:yyMM}{pIdFactura:D6}";
+        }
+
+        private int GenerarNuevoId(XDocument xml)
+        {
+            return xml.Descendants("Factura").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
+        }
+
+        private int GenerarNuevoProductoID(XDocument xml)
+        {
+            return xml.Descendants("Detalle_Factura").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
         }
 
         public List<BE_Factura> ListarFacturasPorCliente(BE_Cliente pCliente)
