@@ -34,35 +34,62 @@ namespace UI
             ConfigurarGrilla();
         }
 
+        private void ConfigurarGrilla()
+        {
+            dgvSalas.AutoGenerateColumns = false;
+            dgvSalas.Columns.AddRange(new DataGridViewColumn[]
+            {
+                new DataGridViewTextBoxColumn {Name = "Nombre", DataPropertyName = "Nombre" },
+                new DataGridViewTextBoxColumn {Name = "Capacidad", DataPropertyName = "Capacidad" },
+                new DataGridViewCheckBoxColumn {Name = "Tiene3D", DataPropertyName = "Tiene3D" }
+            });
+        }
+
         private void CargarSalas()
         {
             try
             {
-                if (salaSeleccionada != null)
-                {
-                    salaSeleccionada = new BE_Sala();
-
-                    salaSeleccionada.Nombre = txtNombre.Text;
-                    salaSeleccionada.Capacidad = (int)numCapacidad.Value;
-                    salaSeleccionada.Tiene3D = chk3D.Checked;
-                }
-
-                if (gestorSala.Guardar(salaSeleccionada))
-                {
-                    if (salaSeleccionada.ID == 0)
-                    {
-                        CrearButacas();
-                    }
-
-                    MessageBox.Show("Sala guardada correctamente");
-                    gestorBitacora.Log(usuarioActual, $"Se guardó la sala {salaSeleccionada.Nombre}");
-                    CargarSalas();
-                    LimpiarFormulario();
-                }
+                dgvSalas.DataSource = null;
+                dgvSalas.DataSource = gestorSala.Consultar();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al guardar sala: {ex.Message}");
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void btnGuardar_Click(object sender, EventArgs e)
+        {
+            if (ValidarDatos())
+            {
+                try
+                {
+                    if (salaSeleccionada != null)
+                    {
+                        salaSeleccionada = new BE_Sala();
+
+                        salaSeleccionada.Nombre = txtNombre.Text;
+                        salaSeleccionada.Capacidad = (int)numCapacidad.Value;
+                        salaSeleccionada.Tiene3D = chk3D.Checked;
+                    }
+
+                    if (gestorSala.Guardar(salaSeleccionada))
+                    {
+                        if (salaSeleccionada.ID == 0)
+                        {
+                            CrearButacas();
+                        }
+
+                        MessageBox.Show("Sala guardada correctamente");
+                        gestorBitacora.Log(usuarioActual, $"Se guardó la sala {salaSeleccionada.Nombre}");
+                        CargarSalas();
+                        LimpiarFormulario();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al guardar sala: {ex.Message}");
+                }
             }
         }
 

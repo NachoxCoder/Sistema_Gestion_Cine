@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="WinForms.DataVisualization" Version="1.9.2" />
+    <Compile Include="D:\One Drive\OneDrive - UNIVERSIDAD ABIERTA INTERAMERICANA\UAI\V Cuatrimestre\Trabajo Final\Sistema Gestion Cine\Sistema_Gestion_Cine\UI\Fr_GestionSalas.cs" Link="Fr_GestionSalas.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -315,5 +315,57 @@ namespace Mappers
                 throw;
             }
         }
+
+        public bool AsignarRolAUsuario(BE_Empleado empleado, BE_Rol rol)
+        {
+            try
+            {
+                XDocument docXML = XDocument.Load(archivoEmpleadoPermiso);
+
+                var existeRelacion = docXML.Descendants("Empleado_Permiso").Any(x =>
+                    int.Parse(x.Element("EmpleadoId").Value) == empleado.ID &&
+                    int.Parse(x.Element("PermisoId").Value) == rol.ID);
+
+                if (!existeRelacion)
+                {
+                    docXML.Element("Empleado_Permisos").Add(new XElement("Empleado_Permiso",
+                        new XElement("EmpleadoId", empleado.ID),
+                        new XElement("PermisoId", rol.ID),
+                        new XElement("FechaAsignacion", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))));
+
+                    docXML.Save(archivoEmpleadoPermiso);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al asignar rol al usuario: {ex.Message}", ex);
+            }
+        }
+
+        public bool RemoverRolDeUsuario(BE_Empleado empleado, BE_Rol rol)
+        {
+            try
+            {
+                XDocument docXML = XDocument.Load(archivoEmpleadoPermiso);
+
+                var relacion = docXML.Descendants("Empleado_Permiso").FirstOrDefault(x =>
+                    int.Parse(x.Element("EmpleadoId").Value) == empleado.ID &&
+                    int.Parse(x.Element("PermisoId").Value) == rol.ID);
+
+                if (relacion != null)
+                {
+                    relacion.Remove();
+                    docXML.Save(archivoEmpleadoPermiso);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al remover rol del usuario: {ex.Message}", ex);
+            }
+        }
     }
 }

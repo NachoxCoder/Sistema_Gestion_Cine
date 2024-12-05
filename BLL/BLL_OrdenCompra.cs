@@ -27,9 +27,9 @@ namespace BLL
             try
             {
                 //No se puede borrar una orden de compra que ya fue procesada
-                if (oOrdenCompra.EstadoOrdenCompra == "Procesada")
+                if (oOrdenCompra.EstadoOrdenCompra != "Pendiente")
                 {
-                    throw new Exception("No se puede eliminar una orden de compra que ya fue procesada.");
+                    throw new Exception("Solo se pueden eliminar ordenes en estado Pendiente");
                 }
                 return mapperOrdenCompra.Borrar(oOrdenCompra);
             }
@@ -44,13 +44,6 @@ namespace BLL
             try
             {
                 ValidarOrdenCompra(oOrdenCompra);
-
-                if (oOrdenCompra.ID == 0)
-                {
-                    oOrdenCompra.FechaOrdenCompra = DateTime.Now;
-                    CalcularTotalOrdenCompra(oOrdenCompra);
-
-                }
                 return mapperOrdenCompra.Guardar(oOrdenCompra);
             }
             catch (Exception ex)
@@ -71,49 +64,55 @@ namespace BLL
                 throw new Exception("Debe seleccionar un proveedor");
             }
 
-            if (!oOrdenCompra.Productos.Any())
+            if (!oOrdenCompra.Detalles.Any())
             {
                 throw new Exception("La orden de compra no tiene productos.");
             }
 
-            foreach (var producto in oOrdenCompra.Productos)
+            foreach (var producto in oOrdenCompra.Detalles)
             {
-                if (producto.Stock <= 0)
+                if (producto.Cantidad <= 0)
                 {
-                    throw new Exception($"La cantidad del producto {producto.NombreProducto} debe ser mayor a 0.");
+                    throw new Exception($"La cantidad del producto: {producto.NombreProducto} debe ser mayor a 0.");
                 }
 
-                if (producto.PrecioProducto <= 0)
+                if (producto.PrecioUnitario <= 0)
                 {
-                    throw new Exception($"El precio del producto {producto.NombreProducto} debe ser mayor a 0.");
+                    throw new Exception($"El precio del producto: {producto.NombreProducto} debe ser mayor a 0.");
                 }
             }
 
         }
 
-        private void CalcularTotalOrdenCompra(BE_OrdenCompra oOrdenCompra)
-        {
-            oOrdenCompra.TotalOrdenCompra = oOrdenCompra.Productos.Sum(x => x.PrecioProducto * x.Stock);
-        }
-
-        public bool ProcesarOrdenCompra(BE_OrdenCompra oOrdenCompra)
+        public bool ProcesarOrdenCompra(BE_OrdenCompra oOrdenCompra, BE_Empleado usuario)
         {
             try
             {
-                //Actualizar el stock de los productos
-                foreach (var producto in oOrdenCompra.Productos)
+               if (oOrdenCompra.EstadoOrdenCompra != "Pendiente")
                 {
-                    var productoExistente = mapperProducto.ConsultarPorId(producto.ID);
-
-                    if (productoExistente != null)
-                    {
-                        productoExistente.Stock += producto.Stock;
-                        mapperProducto.Guardar(productoExistente);
-                    }
+                    throw new Exception("La orden ya fue procesada");
                 }
-                
+
+                foreach (var item in oOrdenCompra.Detalles)
+                {
+                    var producto = mapperProducto.ConsultarPorId(item.IdProducto);
+                    if (producto == null)
+                    {
+                        throw new Exception($"El producto {item.IdProducto} no existe");
+                    }
+
+                    producto.Stock += item.Cantidad;
+                    mapperProducto.Guardar(producto);
+                }
+
                 oOrdenCompra.EstadoOrdenCompra = "Procesada";
-                return mapperOrdenCompra.Guardar(oOrdenCompra);
+                var result = mapperOrdenCompra.Guardar(oOrdenCompra);
+
+                if (result)
+                {
+                    bllBitacora.Log(usuario, $"Se procesó la orden de compra: #{oOrdenCompra.ID}");
+                }
+                return result;
             }
             catch (Exception ex)
             {

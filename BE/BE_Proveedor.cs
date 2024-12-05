@@ -11,12 +11,19 @@ namespace BE
         public BE_Proveedor()
         {
             OrdenesCompra = new List<BE_OrdenCompra>();
+            EstaActivo = true;
         }
-        public string NombreProveedor { get; set; }
+        public string RazonSocial { get; set; }
+        public string CUIT { get; set; }
         public string DireccionProveedor { get; set; }
         public string TelefonoProveedor { get; set; }
         public string EmailProveedor { get; set; }
         public bool EstaActivo { get; set; }
         public virtual ICollection<BE_OrdenCompra> OrdenesCompra { get; set; }
+
+        public override string ToString()
+        {
+            return $"{RazonSocial} ({CUIT})";
+        }   
     }
 }
