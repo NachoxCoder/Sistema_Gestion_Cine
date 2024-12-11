@@ -49,7 +49,7 @@ namespace BLL
             try
             {
                 ValidarCliente(oCliente);
-                ValidarDocumentoUnico(oCliente)
+                ValidarDocumentoUnico(oCliente);
                 return mapperCliente.Guardar(oCliente);
             }
             catch (Exception ex)
@@ -95,6 +95,19 @@ namespace BLL
             if (clienteExistente != null)
             {
                 throw new Exception("Ya existe un cliente con el mismo DNI");
+            }
+        }
+
+        public bool Modificar(BE_Cliente pCliente)
+        {
+            try
+            {
+                ValidarCliente(pCliente);
+                return mapperCliente.Guardar(pCliente);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al modificar cliente: {ex.Message}");
             }
         }
     }

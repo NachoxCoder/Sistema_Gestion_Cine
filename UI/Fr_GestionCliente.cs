@@ -67,7 +67,7 @@ namespace UI
             {
                 if (clienteSeleccionado == null)
                     clienteSeleccionado = new BE_Cliente();
-     
+
                 clienteSeleccionado.Nombre = txtNombre.Text;
                 clienteSeleccionado.Apellido = txtApellido.Text;
                 clienteSeleccionado.DNI = txtDNI.Text;
@@ -79,7 +79,7 @@ namespace UI
                 if (gestorCliente.Guardar(clienteSeleccionado))
                 {
                     MessageBox.Show("Cliente guardado correctamente");
-                    gestorBitacora.Log(usuarioActual,$"Se guardó el cliente: {clienteSeleccionado.NombreCompleto()}");
+                    gestorBitacora.Log(usuarioActual, $"Se guardó el cliente: {clienteSeleccionado.NombreCompleto()}");
                     CargarClientes();
                     LimpiarFormulario();
                 }
@@ -152,6 +152,8 @@ namespace UI
             {
                 clienteSeleccionado = (BE_Cliente)dgvClientes.CurrentRow.DataBoundItem;
                 MostrarCliente();
+                btnEliminar.Enabled = true;
+                btnModificar.Enabled = true;
             }
         }
 
@@ -176,6 +178,43 @@ namespace UI
             txtEmail.Clear();
             txtTelefono.Clear();
             txtDireccion.Clear();
+        }
+
+        private void btnModificar_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!ValidarDatos()) return;
+
+                if(clienteSeleccionado == null)
+                {
+                    MessageBox.Show("Debe seleccionar un cliente para modificar");
+                    return;
+                }
+
+                if(clienteSeleccionado != null)
+                {
+                    clienteSeleccionado.Nombre = txtNombre.Text;
+                    clienteSeleccionado.Apellido = txtApellido.Text;
+                    clienteSeleccionado.DNI = txtDNI.Text;
+                    clienteSeleccionado.FechaNacimiento = dtpFechaNacimiento.Value;
+                    clienteSeleccionado.Email = txtEmail.Text;
+                    clienteSeleccionado.Telefono = txtTelefono.Text;
+                    clienteSeleccionado.Direccion = txtDireccion.Text;
+
+                    if (gestorCliente.Modificar(clienteSeleccionado))
+                    {
+                        MessageBox.Show("Cliente modificado correctamente");
+                        gestorBitacora.Log(usuarioActual, $"Se modificó el cliente: {clienteSeleccionado.NombreCompleto()}");
+                        CargarClientes();
+                        LimpiarFormulario();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al modificar cliente: {ex.Message}");
+            }
         }
     }
 }

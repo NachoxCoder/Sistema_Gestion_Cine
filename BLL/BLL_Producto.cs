@@ -27,7 +27,7 @@ namespace BLL
                 //Verificar que el producto no esté asociado a una orden de compra
                 var mapperOrdenCompra = new MapperOrdenCompra();
                 var productoEnUso = mapperOrdenCompra.Consultar()
-                                    .Any(x => x.Productos.Any(y => y.ID == oProducto.ID));
+                                    .Any(x => x.Detalles.Any(y => y.IdProducto == oProducto.ID));
 
                 if (productoEnUso)
                 {
@@ -38,7 +38,7 @@ namespace BLL
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new Exception($"Error al borrar producto: {ex.Message}");
             }
         }
 
@@ -52,7 +52,7 @@ namespace BLL
             catch (Exception ex)
             {
 
-                throw ex;
+                throw new Exception($"Error al guardar producto: {ex.Message}");
             }
         }
 
@@ -105,7 +105,7 @@ namespace BLL
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new Exception($"Error al actualizar stock: {ex.Message}");
             }
         }
     }

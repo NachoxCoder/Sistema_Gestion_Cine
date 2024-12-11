@@ -13,13 +13,11 @@ namespace BLL
     {
         private readonly MapperOrdenCompra mapperOrdenCompra;
         private readonly BLL_Bitacora bllBitacora;
-        private readonly MapperProducto mapperProducto;
 
         public BLL_OrdenCompra()
         {
             mapperOrdenCompra = new MapperOrdenCompra();
             bllBitacora = new BLL_Bitacora();
-            mapperProducto = new MapperProducto();
         }
 
         public bool Borrar(BE_OrdenCompra oOrdenCompra)
@@ -35,7 +33,7 @@ namespace BLL
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new Exception($"Error al borrar orden de compra: {ex.Message}");
             }
         }
 
@@ -48,13 +46,19 @@ namespace BLL
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new Exception($"Error al guardar orden de compra: {ex.Message}");
             }
         }
 
         public List<BE_OrdenCompra> Consultar()
         {
             return mapperOrdenCompra.Consultar();
+        }
+
+        public List<BE_DetalleOrdenCompra> ObtenerDetallesOrden(int idOrden)
+        {
+            var mapperDetalle = new MapperDetalleOrdenCompra();
+            return mapperDetalle.ConsultarPorOrden(idOrden);
         }
 
         private void ValidarOrdenCompra(BE_OrdenCompra oOrdenCompra)
@@ -73,12 +77,12 @@ namespace BLL
             {
                 if (producto.Cantidad <= 0)
                 {
-                    throw new Exception($"La cantidad del producto: {producto.NombreProducto} debe ser mayor a 0.");
+                    throw new Exception($"La cantidad del producto debe ser mayor a 0.");
                 }
 
                 if (producto.PrecioUnitario <= 0)
                 {
-                    throw new Exception($"El precio del producto: {producto.NombreProducto} debe ser mayor a 0.");
+                    throw new Exception($"El precio del producto debe ser mayor a 0.");
                 }
             }
 
@@ -93,18 +97,6 @@ namespace BLL
                     throw new Exception("La orden ya fue procesada");
                 }
 
-                foreach (var item in oOrdenCompra.Detalles)
-                {
-                    var producto = mapperProducto.ConsultarPorId(item.IdProducto);
-                    if (producto == null)
-                    {
-                        throw new Exception($"El producto {item.IdProducto} no existe");
-                    }
-
-                    producto.Stock += item.Cantidad;
-                    mapperProducto.Guardar(producto);
-                }
-
                 oOrdenCompra.EstadoOrdenCompra = "Procesada";
                 var result = mapperOrdenCompra.Guardar(oOrdenCompra);
 
@@ -116,7 +108,7 @@ namespace BLL
             }
             catch (Exception ex)
             {
-                throw ex;
+                throw new Exception($"Error al procesar orden de compra: {ex.Message}");
             }
         }
     }

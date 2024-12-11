@@ -15,7 +15,8 @@ namespace BE
         }
         public int IdPelicula { get; set; }
         public DateTime FechaFuncion { get; set; }
-        public TimeSpan HoraFuncion { get; set; }
+        public TimeSpan HoraInicio { get; set; }
+        public TimeSpan HoraFin { get; set; }
         public int IdSala { get; set; }
         public bool EstaActiva { get; set; }
         public decimal Precio { get; set; }

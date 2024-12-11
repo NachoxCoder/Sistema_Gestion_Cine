@@ -21,6 +21,7 @@ namespace UI
         private readonly BLL_Bitacora gestorBitacora;
         private BE_Empleado usuarioActual;
         private BE_Pelicula peliculaSeleccionada;
+        private BE_Funcion funcionSeleccionada;
 
         public Fr_GestionPeliculas(BE_Empleado usuario)
         {
@@ -131,32 +132,29 @@ namespace UI
         {
             try
             {
-                if (peliculaSeleccionada == null)
+                if (ValidarDatosFuncion())
                 {
-                    MessageBox.Show("Debe seleccionar una película");
-                    return;
-                }
+                    var nuevaFuncion = new BE_Funcion
+                    {
+                        IdPelicula = peliculaSeleccionada.ID,
+                        FechaFuncion = dtpFecha.Value,
+                        HoraInicio = dtpHoraInicio.Value.TimeOfDay,
+                        HoraFin = dtpHoraFin.Value.TimeOfDay,
+                        IdSala = (int)cmbSala.SelectedValue,
+                        Precio = numPrecio.Value,
+                        EstaActiva = true
+                    };
 
-                var funcion = new BE_Funcion
-                {
-                    IdPelicula = peliculaSeleccionada.ID,
-                    FechaFuncion = dtpFecha.Value.Date,
-                    HoraFuncion = dtpHora.Value.TimeOfDay,
-                    IdSala = (int)cmbSala.SelectedValue,
-                    Precio = numPrecio.Value,
-                    EstaActiva = true
-                };
-
-                if (gestorFuncion.Guardar(funcion))
-                {
-                    MessageBox.Show("Funcion agregada correctamente");
-                    gestorBitacora.Log(usuarioActual,
-                        $"Se guardó una función para la película: {peliculaSeleccionada.Titulo}");
-                    CargarFunciones();
-                    LimpiarFormularioFuncion();
+                    if (gestorFuncion.ValidarHorarios(nuevaFuncion) && gestorFuncion.Guardar(nuevaFuncion))
+                    {
+                        MessageBox.Show("Función guardada correctamente");
+                        gestorBitacora.Log(usuarioActual,
+                            $"Se guardó la función de la película: {peliculaSeleccionada.Titulo}");
+                        CargarFunciones();
+                        LimpiarFormularioFuncion();
+                    }
                 }
             }
-
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al guardar función: {ex.Message}");
@@ -181,7 +179,7 @@ namespace UI
             }
         }
 
-        private void MostrarPelicula() 
+        private void MostrarPelicula()
         {
             txtTitulo.Text = peliculaSeleccionada.Titulo;
             numDuracion.Value = peliculaSeleccionada.Duracion;
@@ -203,9 +201,138 @@ namespace UI
         private void LimpiarFormularioFuncion()
         {
             dtpFecha.Value = DateTime.Today;
-            dtpHora.Value = DateTime.Now;
+            dtpHoraInicio.Value = DateTime.Now;
             cmbSala.SelectedIndex = 0;
             numPrecio.Value = 0;
+        }
+
+        private void dtpHoraDesde_ValueChanged(object sender, EventArgs e)
+        {
+            if (peliculaSeleccionada != null)
+            {
+                TimeSpan duracion = TimeSpan.FromMinutes(peliculaSeleccionada.Duracion + 30);
+                dtpHoraFin.Value = dtpHoraInicio.Value.Add(duracion);
+            }
+        }
+
+        private void btnModificarPelicula_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (peliculaSeleccionada == null)
+                {
+                    MessageBox.Show("Seleccione una película para modificar");
+                    return;
+                }
+
+                peliculaSeleccionada.Titulo = txtTitulo.Text;
+                peliculaSeleccionada.Sinopsis = txtSinopsis.Text;
+                peliculaSeleccionada.Duracion = (int)numDuracion.Value;
+                peliculaSeleccionada.Rating = txtRating.Text;
+                peliculaSeleccionada.EstaActiva = chkActiva.Checked;
+
+                if (gestorPelicula.Guardar(peliculaSeleccionada))
+                {
+                    MessageBox.Show("Pelicula modificada correctamente");
+                    gestorBitacora.Log(usuarioActual,
+                        $"Se modificó la película: {peliculaSeleccionada.Titulo}");
+                    CargarPeliculas();
+                    LimpiarFormularioPelicula();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+
+            }
+        }
+        private void btnEliminarPelicula_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (peliculaSeleccionada == null)
+                {
+                    MessageBox.Show("Seleccione una película para eliminar");
+                    return;
+                }
+
+                if (MessageBox.Show("¿Está seguro que desea eliminar la película?", "Eliminar Película",
+                    MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    if (gestorPelicula.Borrar(peliculaSeleccionada))
+                    {
+                        MessageBox.Show("Película eliminada correctamente");
+                        gestorBitacora.Log(usuarioActual,
+                            $"Se eliminó la película: {peliculaSeleccionada.Titulo}");
+                        CargarPeliculas();
+                        LimpiarFormularioPelicula();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void btnModificarFuncion_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (funcionSeleccionada == null)
+                {
+                    MessageBox.Show("Seleccione una función para modificar");
+                    return;
+                }
+
+                funcionSeleccionada.FechaFuncion = dtpFecha.Value.Date;
+                funcionSeleccionada.HoraInicio = dtpHoraInicio.Value.TimeOfDay;
+                funcionSeleccionada.HoraFin = dtpHoraFin.Value.TimeOfDay;
+                funcionSeleccionada.IdSala = (int)cmbSala.SelectedValue;
+                funcionSeleccionada.Precio = numPrecio.Value;
+
+                if (gestorFuncion.ValidarHorarios(funcionSeleccionada) && gestorFuncion.Guardar(funcionSeleccionada))
+                {
+                    MessageBox.Show("Función modificada correctamente");
+                    gestorBitacora.Log(usuarioActual,
+                        $"Se modificó la función de la película: {peliculaSeleccionada.Titulo}");
+                    CargarFunciones();
+                    LimpiarFormularioFuncion();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void btnEliminarFuncion_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if(funcionSeleccionada == null)
+                {
+                    MessageBox.Show("Seleccione una función para eliminar");
+                    return;
+                }
+
+                if(MessageBox.Show("¿Está seguro que desea eliminar la función?", "Eliminar Función",
+                    MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    if (gestorFuncion.Borrar(funcionSeleccionada))
+                    {
+                        MessageBox.Show("Función eliminada correctamente");
+                        gestorBitacora.Log(usuarioActual,
+                            $"Se eliminó la función de la película: {peliculaSeleccionada.Titulo}");
+                        CargarFunciones();
+                        LimpiarFormularioFuncion();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
     }
 }

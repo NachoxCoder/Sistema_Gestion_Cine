@@ -36,9 +36,10 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Fr_Login));
             pnlTop = new Panel();
-            lblTitle = new Label();
             btnSalir = new Button();
+            lblTitle = new Label();
             picLogo = new PictureBox();
             txtUsername = new TextBox();
             txtPassword = new TextBox();
@@ -58,6 +59,17 @@
             pnlTop.Size = new Size(800, 55);
             pnlTop.TabIndex = 0;
             // 
+            // btnSalir
+            // 
+            btnSalir.FlatStyle = FlatStyle.Flat;
+            btnSalir.ForeColor = Color.White;
+            btnSalir.Location = new Point(0, 0);
+            btnSalir.Name = "btnSalir";
+            btnSalir.Size = new Size(30, 30);
+            btnSalir.TabIndex = 1;
+            btnSalir.Text = "✖";
+            btnSalir.Click += btnIngresar_Click;
+            // 
             // lblTitle
             // 
             lblTitle.Dock = DockStyle.Top;
@@ -70,19 +82,10 @@
             lblTitle.Text = "SISTEMA DE GESTIÓN CINEMATOGRÁFICA";
             lblTitle.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // btnSalir
-            // 
-            btnSalir.FlatStyle = FlatStyle.Flat;
-            btnSalir.ForeColor = Color.White;
-            btnSalir.Location = new Point(0, 0);
-            btnSalir.Name = "btnSalir";
-            btnSalir.Size = new Size(30, 30);
-            btnSalir.TabIndex = 1;
-            btnSalir.Text = "✖";
-            btnSalir.Click += btnIngresar_Click;
-            // 
             // picLogo
             // 
+            picLogo.BackgroundImage = (Image)resources.GetObject("picLogo.BackgroundImage");
+            picLogo.BackgroundImageLayout = ImageLayout.Stretch;
             picLogo.Location = new Point(92, 168);
             picLogo.Name = "picLogo";
             picLogo.Size = new Size(120, 120);

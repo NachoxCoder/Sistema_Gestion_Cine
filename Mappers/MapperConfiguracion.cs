@@ -99,4 +99,5 @@ namespace Mappers
         {
             return pXml.Descendants("Configuracion").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
         }
+    }
 }

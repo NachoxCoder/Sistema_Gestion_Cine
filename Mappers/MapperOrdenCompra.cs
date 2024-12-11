@@ -9,100 +9,95 @@ using System.Xml.Linq;
 
 namespace Mappers
 {
-    public class MapperOrdenCompra : IAbmc<BE_OrdenCompra>
+    public class MapperOrdenCompra : MapperBase<BE_OrdenCompra>, IAbmc<BE_OrdenCompra>
     {
         private const string ARCHIVO_ORDEN_COMPRA = @"\DATA\OrdenCompra.xml";
-        private const string ARCHIVO_DETALLE_ORDEN_COMPRA = @"\DATA\Detalle_OrdenCompra.xml";
+        private readonly MapperProveedor mapperProveedor;
+        private readonly MapperDetalleOrdenCompra mapperDetalle;
 
-        public bool Borrar(BE_OrdenCompra pObjOrdenCompra)
+        public MapperOrdenCompra() : base(ARCHIVO_ORDEN_COMPRA)
         {
-            try
-            {
-                XDocument docXML = XDocument.Load(ARCHIVO_ORDEN_COMPRA);
-
-                var query = from ordenCompra in docXML.Descendants("OrdenCompra")
-                            where int.Parse(ordenCompra.Attribute("IdOrdenCompra").Value) == pObjOrdenCompra.ID
-                            select ordenCompra;
-
-                query.Remove();
-                docXML.Save(ARCHIVO_ORDEN_COMPRA);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            mapperProveedor = new MapperProveedor();
+            mapperDetalle = new MapperDetalleOrdenCompra();
         }
 
-        private int GenerarNuevoId()
+        public bool Borrar(BE_OrdenCompra pOrdenCompra)
         {
             try
             {
                 XDocument docXML = XDocument.Load(ARCHIVO_ORDEN_COMPRA);
 
-                int ultimoId = docXML.Descendants("OrdenCompra").Select(e => (int?)e.Attribute("IdOrdenCompra"))
-                               .Max() ?? 0;
-                return ultimoId == 0 ? 1 : ultimoId + 1;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+                var orden = docXML.Descendants("OrdenCompra").
+                    FirstOrDefault(x => int.Parse(x.Attribute("IdOrdenCompra").Value) == pOrdenCompra.ID);
 
-        public bool Guardar(BE_OrdenCompra pObjOrdenCompra)
-        {
-            try
-            {
-                XDocument docXML = XDocument.Load(ARCHIVO_ORDEN_COMPRA);
-                XDocument xmlDetalleOrdenCompra = XDocument.Load(ARCHIVO_DETALLE_ORDEN_COMPRA);
-
-                if (pObjOrdenCompra.ID == 0)
+                if(orden != null)
                 {
-                    pObjOrdenCompra.ID = GenerarNuevoId();
-
-                    docXML.Element("OrdenesCompra").Add(new XElement("OrdenCompra",
-                        new XAttribute("IdOrdenCompra", pObjOrdenCompra.ID),
-                        new XAttribute("Fecha", pObjOrdenCompra.FechaOrdenCompra.ToString("yyyy-MM-dd")),
-                        new XAttribute("Total", pObjOrdenCompra.TotalOrdenCompra.ToString("F2")),
-                        new XAttribute("PrecioUnitario", pObjOrdenCompra.PrecioUnitario.ToString("F2")),
-                        new XAttribute("Proveedor", pObjOrdenCompra.Proveedor?.ID ?? 0)));
-
-                    foreach (BE_Producto producto in pObjOrdenCompra.Productos)
+                    foreach (var detalle in pOrdenCompra.Detalles)
                     {
-                        xmlDetalleOrdenCompra.Element("OrdenCOmpra_Productos").Add(new XElement("OrdenCompra_Producto",
-                            new XElement("IdOrden", pObjOrdenCompra.ID),
-                            new XElement("Producto ID", producto.ID),
-                            new XElement("Cantidad", producto.Stock.ToString()),
-                            new XElement("PrecioUnitario", producto.PrecioProducto.ToString("F2"))));
+                        mapperDetalle.Borrar(detalle);
                     }
 
-                    docXML.Save(ARCHIVO_ORDEN_COMPRA);
-                    xmlDetalleOrdenCompra.Save(ARCHIVO_DETALLE_ORDEN_COMPRA);
+                    orden.Remove();
+                    GuardarXml(docXML);
                     return true;
                 }
-                else
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private int GenerarNuevoId(XDocument docXML)
+        {
+            return docXML.Descendants("OrdenCompra")
+                .Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
+        }
+
+        public bool Guardar(BE_OrdenCompra pOrdenCompra)
+        {
+            try
+            {
+                XDocument docXML = CargarXml();
+
+                if (pOrdenCompra.ID == 0)
                 {
-                    var query = from ordenCompra in docXML.Descendants("OrdenCompra")
-                                where ordenCompra.Attribute("IdOrdenCompra").Value == pObjOrdenCompra.ID.ToString()
-                                select ordenCompra;
+                    pOrdenCompra.ID = GenerarNuevoId(docXML);
 
-                    foreach (var ordenCompra in query)
+                    var nuevaOrden = new XElement("OrdenCompra",
+                        new XAttribute("ID", pOrdenCompra.ID),
+                        new XElement("IdProveedor", pOrdenCompra.IdProveedor),
+                        new XElement("Total", pOrdenCompra.TotalOrdenCompra.ToString("F2")),
+                        new XElement("FechaOrden", pOrdenCompra.FechaOrdenCompra.ToString("yyyy-MM-dd")),
+                        new XElement("EstadoOrden", pOrdenCompra.EstadoOrdenCompra));
+
+                    docXML.Root.Add(nuevaOrden);
+
+                    foreach (var detalle in pOrdenCompra.Detalles)
                     {
-                        ordenCompra.Attribute("Fecha").Value = pObjOrdenCompra.FechaOrdenCompra.ToString("yyyy-MM-dd");
-                        ordenCompra.Attribute("Proveedor").Value = (pObjOrdenCompra.Proveedor?.ID ?? 0).ToString();
-                        ordenCompra.Attribute("Total").Value = pObjOrdenCompra.TotalOrdenCompra.ToString("F2");
-                        ordenCompra.Attribute("PrecioUnitario").Value = pObjOrdenCompra.PrecioUnitario.ToString("F2");
+                        detalle.IdOrdenCompra = pOrdenCompra.ID;
+                        mapperDetalle.Guardar(detalle);
                     }
-
-                    docXML.Save(ARCHIVO_ORDEN_COMPRA);
                 }
+                else 
+                {
+                    var orden = docXML.Descendants("OrdenCompra").
+                        FirstOrDefault(x => int.Parse(x.Attribute("IdOrdenCompra").Value) == pOrdenCompra.ID);
+
+                    if (orden != null)
+                    {
+                        orden.Element("Total").Value = pOrdenCompra.TotalOrdenCompra.ToString("F2");
+                        orden.Element("EstadoOrden").Value = pOrdenCompra.EstadoOrdenCompra;
+                    }
+                }
+                GuardarXml(docXML);
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return false;
             }
         }
 
@@ -110,66 +105,29 @@ namespace Mappers
         {
             try
             {
-                XDocument docXML = XDocument.Load(ARCHIVO_ORDEN_COMPRA);
-                XDocument xmlDetalleOrdenCompra = XDocument.Load(ARCHIVO_DETALLE_ORDEN_COMPRA);
-                MapperProveedor objMapperProveedor = new MapperProveedor();
-                MapperProducto objMapperProducto = new MapperProducto();
-                MapperFactura objMapperFactura = new MapperFactura();
+                XDocument docXML = CargarXml();
+                var proveedores = mapperProveedor.Consultar();
 
-                var query = from ordenCompra in docXML.Descendants("OrdenCompra")
-                            select ordenCompra;
-
-                List<BE_OrdenCompra> lstOrdenesCompra = new List<BE_OrdenCompra>();
-
-                foreach (var ordenCompra in query)
+                var ordenes = docXML.Descendants("OrdenCompra").Select(x => new BE_OrdenCompra
                 {
-                    BE_OrdenCompra objOrdenCompra = new BE_OrdenCompra();
-                    objOrdenCompra.ID = int.Parse(ordenCompra.Attribute("IdOrdenCompra").Value);
-                    objOrdenCompra.FechaOrdenCompra = DateTime.Parse(ordenCompra.Attribute("Fecha").Value);
-                    objOrdenCompra.TotalOrdenCompra = decimal.Parse(ordenCompra.Attribute("Total").Value);
-                    objOrdenCompra.PrecioUnitario = decimal.Parse(ordenCompra.Attribute("PrecioUnitario").Value);
-                    objOrdenCompra.Proveedor = objMapperProveedor.ConsultarPorId
-                                               (int.Parse(ordenCompra.Attribute("Proveedor").Value));
-                    objOrdenCompra.Productos = ListarProductos(int.Parse(ordenCompra.Attribute("IdOrden").Value));
+                    ID = int.Parse(x.Attribute("ID").Value),
+                    IdProveedor = int.Parse(x.Element("IdProveedor").Value),
+                    TotalOrdenCompra = decimal.Parse(x.Element("Total").Value),
+                    FechaOrdenCompra = DateTime.Parse(x.Element("FechaOrden").Value),
+                    EstadoOrdenCompra = x.Element("EstadoOrden").Value,
+                }).ToList();
 
+                foreach (var orden in ordenes)
+                {
+                    orden.Proveedor = proveedores.FirstOrDefault(p => p.ID == orden.IdProveedor);
+                    orden.Detalles = mapperDetalle.ConsultarPorOrden(orden.ID);
                 }
-                return lstOrdenesCompra;
+                return ordenes;
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                return new List<BE_OrdenCompra>();
             }
         }
-
-        private List<BE_Producto> ListarProductos(int pIdOrdenCompra)
-        {
-            try
-            {
-                XDocument docXML = XDocument.Load(ARCHIVO_ORDEN_COMPRA);
-                MapperProducto mapperProducto = new MapperProducto();
-
-                var query = from detalleOrdenCompra in docXML.Descendants("OrdenCompra_Producto")
-                            where int.Parse(detalleOrdenCompra.Element("IdOrden").Value) == pIdOrdenCompra
-                            select detalleOrdenCompra;
-
-                List<BE_Producto> lstProductos = new List<BE_Producto>();
-
-                foreach (var detalleOrdenCompra in query)
-                {
-                    BE_Producto objProducto = objMapperProducto.ConsultarPorId
-                                             (int.Parse(detalleOrdenCompra.Element("Producto ID").Value));
-                    objProducto.Stock = int.Parse(detalleOrdenCompra.Element("Cantidad").Value);
-                    objProducto.PrecioProducto = decimal.Parse(detalleOrdenCompra.Element("PrecioUnitario").Value);
-                    lstProductos.Add(objProducto);
-                }
-
-                return lstProductos;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-
     }
 }

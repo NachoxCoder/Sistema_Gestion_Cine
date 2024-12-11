@@ -21,21 +21,17 @@ namespace Mappers
             {
                 XDocument xml = CargarXml();
 
-                if (pObjCliente.ID == 0)
+                var clienteExistente = xml.Descendants("Cliente").
+                    FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pCliente.ID);
+
+                if (clienteExistente != null)
                 {
-                    pObjCliente.ID = GenerarNuevoId(xml);
-                    var nuevoCliente = CrearElementoCliente(pCliente);
-                    xml.Root.Add(nuevoCliente);
+                    ActualizarElementoCliente(clienteExistente, pCliente);
                 }
                 else
                 {
-                    var clienteExistente = xml.Descendants("Cliente").
-                        FirstOrDefault(x => int.Parse(x.Attribute("ID").Value) == pCliente.ID);
-
-                    if (clienteExistente != null)
-                    {
-                        ActualizarElementoCliente(clienteExistente, pCliente);
-                    }
+                    pCliente.ID = GenerarNuevoId(xml);
+                    xml.Root.Add(CrearElementoCliente(pCliente));
                 }
 
                 GuardarXml(xml);

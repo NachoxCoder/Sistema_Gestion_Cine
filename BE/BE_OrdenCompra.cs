@@ -17,8 +17,9 @@ namespace BE
         public string EstadoOrdenCompra { get; set; }
         public DateTime FechaOrdenCompra { get; set; }
         public decimal TotalOrdenCompra { get; set; }
-        public virtual ICollection<BE_DetalleOrdenCompra> Detalles { get; set; }
         public virtual BE_Proveedor Proveedor { get; set; }
+
+        public List<BE_DetalleOrdenCompra> Detalles { get; set; }
 
         public void CalcularTotal()
         {

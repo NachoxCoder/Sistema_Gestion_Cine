@@ -101,8 +101,8 @@ namespace BLL
             }
 
             var duracionFuncion = TimeSpan.FromMinutes(pelicula.Duracion + 30);
-            var horaInicio = oFuncion.HoraFuncion;
-            var horaFin = horaInicio.Add(duracionFuncion);
+            var horaInicio = oFuncion.HoraInicio;
+            var horaFin = oFuncion.HoraFin;
 
             foreach (var funcion in funcionesExistentes)
             {
@@ -111,8 +111,8 @@ namespace BLL
                 if (peliculaExistente == null) continue;
 
                 var duracionPeliculaExistente = TimeSpan.FromMinutes(peliculaExistente.Duracion + 30);
-                var horaInicioPeliculaExistente = funcion.HoraFuncion;
-                var horaFinPeliculaExistente = horaInicioPeliculaExistente.Add(duracionPeliculaExistente);
+                var horaInicioPeliculaExistente = funcion.HoraInicio;
+                var horaFinPeliculaExistente = funcion.HoraFin;
 
                 if ((horaInicio >= horaInicioPeliculaExistente && horaInicio < horaFinPeliculaExistente) ||
                     (horaFin > horaInicioPeliculaExistente && horaFin <= horaFinPeliculaExistente) ||
@@ -121,6 +121,28 @@ namespace BLL
                     throw new Exception("La sala no esta disponible en ese horario");
                 }
             }
+        }
+
+        public bool ValidarHorarios(BE_Funcion nuevaFuncion)
+        {
+            var funcionesExistentes = Consultar().Where(x => x.IdSala == nuevaFuncion.IdSala &&
+                                      x.FechaFuncion.Date == nuevaFuncion.FechaFuncion.Date);
+
+            foreach (var funcion in funcionesExistentes)
+            {
+                if (SeSuperponen(funcion, nuevaFuncion))
+                {
+                    throw new Exception("La sala no esta disponible en ese horario");
+                }
+            }
+
+            return true;
+         }
+
+        private bool SeSuperponen(BE_Funcion funcionExistente, BE_Funcion nuevaFuncion)
+        {
+            return (funcionExistente.HoraInicio <= nuevaFuncion.HoraFin && 
+                nuevaFuncion.HoraInicio <= funcionExistente.HoraFin);
         }
     }
 }

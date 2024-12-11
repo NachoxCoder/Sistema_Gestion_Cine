@@ -93,26 +93,26 @@ namespace Mappers
                 List<BE_Componente> listaRoles = new List<BE_Componente>();
                 List<BE_Componente> listaPermisos = new List<BE_Componente>();
 
-                var permiso = from r in docXML.Descendants("Permiso")
+                var permisoQuery = from r in docXML.Descendants("Permiso")
                               select r;
 
-                foreach (XElement r in permiso)
+                foreach (XElement r in permisoQuery)
                 {
                     if ((bool)r.Element("Rol") == true)
                     {
-                        BE_Componente BERol = new BERol(
+                        BE_Componente rol = new BE_Rol(
                             pNombre: r.Element("Nombre").Value
                             );
-                        BERol.ID = int.Parse(r.Attribute("PermisoId").Value);
-                        listaRoles.Add(BERol);
+                        rol.ID = int.Parse(r.Attribute("PermisoId").Value);
+                        listaRoles.Add(rol);
                     }
                     else
                     {
-                        BE_Componente BEPermiso = new BEPermiso(
+                        BE_Componente permisoComponent = new BE_Permiso(
                             pNombre: r.Element("Nombre").Value
                             );
-                        BEPermiso.ID = int.Parse(r.Attribute("PermisoId").Value);
-                        listaPermisos.Add(BEPermiso);
+                        permisoComponent.ID = int.Parse(r.Attribute("PermisoId").Value);
+                        listaPermisos.Add(permisoComponent);
                     }
                 }
 
@@ -131,7 +131,6 @@ namespace Mappers
             }
             catch (Exception ex)
             {
-
                 throw ex;
             }
         }

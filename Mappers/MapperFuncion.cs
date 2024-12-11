@@ -62,7 +62,7 @@ namespace Mappers
             try
             {
                 XDocument xml = CargarXml();
-                if (pObjFuncion.ID == 0)
+                if (pFuncion.ID == 0)
                 {
                     pFuncion.ID = GenerarNuevoID(xml);
                     var nuevaFuncion = new XElement("Funcion",

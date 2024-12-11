@@ -20,14 +20,9 @@ namespace BE
         {
             listaPermisos = new List<BE_Componente>();
         }
-
-        public BE_Empleado(int id, string nombreUsuario, string password, string nombre, string apellido, string area)
+        public string NombreCompleto()
         {
-            NombreUsuario = nombreUsuario;
-            Password = password;
-            Nombre = nombre;
-            Apellido = apellido;
-            Area = area;
+            return $"{Nombre} {Apellido}";
         }
 
         public override string ToString()
@@ -43,9 +38,9 @@ namespace BE
                     return true;
                 if (componente is BE_Rol rol)
                 {
-                    foreach (BE_Componente permiso in rol.ObtenerHijos())
+                    foreach (BE_Componente permisoHijo in rol.ObtenerHijos())
                     {
-                        if (permiso.Nombre == permiso)
+                        if (permisoHijo.Nombre == permiso)
                             return true;
                     }
                 }

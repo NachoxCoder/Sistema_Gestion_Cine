@@ -36,20 +36,6 @@ namespace Mappers
             }
         }
 
-        public int FacturaID()
-        {
-            try
-            {
-                XDocument docXML = XDocument.Load(archivo);
-                int ultimoId = docXML.Descendants("Factura").Select(e => (int?)e.Attribute("IdFactura"))
-                               .Max() ?? 0;
-                return ultimoId == 0 ? 1 : ultimoId + 1;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
         public bool Guardar(BE_Factura pFactura)
         {
             try
@@ -59,7 +45,7 @@ namespace Mappers
 
                 if (pFactura.ID == 0)
                 {
-                    pFactura.ID = GenerarNuevoID(xmlFactura);
+                    pFactura.ID = GenerarNuevoId(xmlFactura);
                     pFactura.NumeroFactura = GenerarNumeroFactura(pFactura.ID);
 
                     var nuevaFactura = new XElement("Factura", 

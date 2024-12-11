@@ -125,9 +125,9 @@ namespace Mappers
         {
             try
             {
-                XDocument docClienteMembresia = XDocument.Load(archivoClienteMembresia);
+                XDocument docXML = CargarXml();
                 //verificar si el cliente ya tiene la membresia asignada
-                var membresiaActiva = docClienteMembresia.Descendants("Cliente_Membresia").
+                var membresiaActiva = docXML.Descendants("Membresia").
                     Where(x => int.Parse(x.Element("IdCliente").Value) == pCliente.ID &&
                     x.Element("EstaActiva").Value == "true");
 
@@ -139,15 +139,17 @@ namespace Mappers
                 }
 
                 //Agregar la nueva membresia
-                docClienteMembresia.Element("Clientes_Membresias").Add(new XElement("Cliente_Membresia",
+                var nuevaMembresia = new XElement("Cliente_Membresia",
+                    new XAttribute("ID", GenerarNuevoId(docXML)),
                     new XElement("IdCliente", pCliente.ID),
-                    new XElement("IdMembresia", pMembresia.ID),
+                    new XElement("Tipo", pMembresia.Tipo.ToString()),
                     new XElement("FechaInicio", DateTime.Now.ToString()),
                     new XElement("FechaFin", string.Empty),
                     new XElement("EstaActiva", "true")
-                    ));
-
-                docClienteMembresia.Save(archivoClienteMembresia);
+                    );
+                
+                docXML.Root.Add(nuevaMembresia);
+                GuardarXml(docXML);
                 return true;
             }
             catch (Exception ex)
@@ -160,18 +162,7 @@ namespace Mappers
         {
             try
             {
-                XDocument docClienteMembresia = XDocument.Load(archivoClienteMembresia);
-
-                var membresiaActiva = docClienteMembresia.Descendants("Cliente_Membresia").
-                    FirstOrDefault(x => int.Parse(x.Element("IdCliente").Value) == pCliente.ID &&
-                    x.Element("EstaActiva").Value == "true");
-
-                if (membresiaActiva != null)
-                {
-                    int membresiaID = int.Parse(membresiaActiva.Element("IdMembresia").Value);
-                    return Consultar().FirstOrDefault(x => x.ID == membresiaID);
-                }
-                return null;
+                return Consultar().FirstOrDefault(x => x.IdCliente == pCliente.ID && x.EstaActiva);
             }
             catch (Exception ex)
             {

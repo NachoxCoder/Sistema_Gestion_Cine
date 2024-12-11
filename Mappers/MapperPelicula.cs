@@ -7,7 +7,7 @@ using Interfaces;
 
 namespace Mappers
 {
-    public class MapperPelicula : MapperBase<BE_Pelicula> IAbmc<BE_Pelicula>
+    public class MapperPelicula : MapperBase<BE_Pelicula>, IAbmc<BE_Pelicula>
     {
         private const string ARCHIVO_PELICULA = @".\Data\Pelicula.xml";
 
@@ -109,6 +109,18 @@ namespace Mappers
             catch
             {
                 return new List<BE_Pelicula>();
+            }
+        }
+
+        public int GenerarNuevoId(XDocument xml)
+        {
+            try
+            {
+                return xml.Descendants("Pelicula").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
     }

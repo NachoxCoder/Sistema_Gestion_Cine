@@ -96,7 +96,6 @@ namespace Mappers
                     IdBoleto = int.Parse(x.Element("IdBoleto").Value),
                     Cantidad = int.Parse(x.Element("Cantidad").Value),
                     PrecioUnitario = decimal.Parse(x.Element("PrecioUnitario").Value),
-                    Subtotal = decimal.Parse(x.Element("Subtotal").Value),
                     Boleto = boletos.FirstOrDefault(b => b.ID == int.Parse(x.Element("IdBoleto").Value))
                 }).ToList();
             }

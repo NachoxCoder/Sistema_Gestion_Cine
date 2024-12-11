@@ -12,8 +12,6 @@ namespace BE
         public string NumeroFactura{ get; set; }
         public BE_Cliente Cliente { get; set; }
         public int IdCliente { get; set; }
-
-        //public BE_Empleado Empleado { get; set; }
         public string TipoFactura { get; set; }
         public ICollection<BE_DetalleFactura> Detalles { get; set; }
         public decimal Subtotal { get; set; }
@@ -21,6 +19,7 @@ namespace BE
         public decimal IVA { get; set; }
         public DateTime FechaEmision { get; set; }
         public string MetodoPago { get; set; }
+        public bool EstaPagada { get; set; }
 
         public virtual ICollection<BE_Boleto> Boletos
         {

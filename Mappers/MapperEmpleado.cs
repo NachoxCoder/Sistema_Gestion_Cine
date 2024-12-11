@@ -13,6 +13,8 @@ namespace Mappers
     {
         private const string archivoEmpleado = @".\DATA\Empleado.xml";
 
+        public MapperEmpleado() : base(archivoEmpleado) { }
+
         public bool Guardar(BE_Empleado pEmpleado)
         {
             try

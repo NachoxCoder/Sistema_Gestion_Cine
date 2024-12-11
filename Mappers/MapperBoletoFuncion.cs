@@ -90,10 +90,6 @@ namespace Mappers
                 var boletos = mapperBoleto.Consultar();
                 var funciones = mapperFuncion.Consultar();
 
-                XDocument xml = CargarXml();
-                var boletos = mapperBoleto.Consultar();
-                var funciones = mapperFuncion.Consultar();
-
                 return xml.Descendants("BoletoFuncion").Select(x => new BE_BoletoFuncion
                 {
                     ID = int.Parse(x.Attribute("ID").Value),
@@ -108,6 +104,11 @@ namespace Mappers
             {
                 return new List<BE_BoletoFuncion>();
             }
+        }
+
+        public int GenerarNuevoId(XDocument xml)
+        {
+            return xml.Descendants("BoletoFuncion").Max(x => (int?)int.Parse(x.Attribute("ID").Value)) ?? 0 + 1;
         }
     }
 }
